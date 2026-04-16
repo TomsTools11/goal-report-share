@@ -1,26 +1,135 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Surfaces — quiet tonal shifts */
+  --surface-0: #ffffff;
+  --surface-1: #fafafa;
+  --surface-2: #f4f4f5;
+  --surface-border: #e8e8ea;
+  --surface-border-strong: #d4d4d8;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Text */
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
+
+  /* Brand accent — electric blue */
+  --brand: #006FE8;
+  --brand-hover: #0062D0;
+  --brand-soft: #E6F0FE;
+  --brand-ring: rgba(0, 111, 232, 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --surface-0: #0a0a0a;
+    --surface-1: #111113;
+    --surface-2: #18181b;
+    --surface-border: #232327;
+    --surface-border-strong: #2e2e33;
+
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #52525b;
+
+    --brand: #3A92F5;
+    --brand-hover: #5BA4F7;
+    --brand-soft: rgba(58, 146, 245, 0.12);
+    --brand-ring: rgba(58, 146, 245, 0.28);
   }
 }
 
+@theme inline {
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--surface-border);
+  --color-border-strong: var(--surface-border-strong);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Pulse animation for idle brand mark */
+@keyframes brand-pulse {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+.brand-mark-idle {
+  animation: brand-pulse 3.6s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Ring pulse on drag-over */
+@keyframes ring-expand {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+
+.ring-pulse::before,
+.ring-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--brand);
+  animation: ring-expand 1.8s ease-out infinite;
+  pointer-events: none;
+}
+.ring-pulse::after {
+  animation-delay: 0.9s;
+}
+
+/* Noise grain — adds warmth to flat surfaces */
+.grain {
+  position: relative;
+}
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.035 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 120px 120px;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.6;
+  border-radius: inherit;
+}
+
+/* Selection */
+::selection {
+  background: var(--brand);
+  color: white;
 }
