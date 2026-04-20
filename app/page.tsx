@@ -250,6 +250,11 @@ export default function Home() {
             </div>
           </div>
 
+          <p className="mt-3 text-center text-[12px] text-[var(--text-tertiary)]">
+            Uploads you make here stay in this tab&apos;s report list until you close it.
+            Shareable links keep working after that — the list just resets.
+          </p>
+
           {/* ─── Upload results inline ─── */}
           {results.length > 0 && (
             <div className="mt-6 space-y-2">
