@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { BrandMark } from "./brand-mark";
 
 interface UploadResult {
@@ -18,6 +18,29 @@ interface Report {
   uploadedAt: string;
 }
 
+const SESSION_KEY = "reports:v1";
+
+function readSession(): Report[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as Report[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSession(reports: Report[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(reports));
+  } catch {
+    // quota or privacy-mode errors — non-fatal
+  }
+}
+
 export default function Home() {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -27,19 +50,9 @@ export default function Home() {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchReports = useCallback(async () => {
-    try {
-      const res = await fetch("/api/reports");
-      const data = await res.json();
-      setReports(data.reports ?? []);
-    } catch {
-      // silently fail on list
-    }
-  }, []);
-
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+    setReports(readSession());
+  }, []);
 
   const uploadFiles = async (files: FileList | File[]) => {
     setUploading(true);
@@ -53,8 +66,26 @@ export default function Home() {
     try {
       const res = await fetch("/api/upload", { method: "POST", body: formData });
       const data = await res.json();
-      setResults(data.reports ?? []);
-      fetchReports();
+      const uploaded: UploadResult[] = data.reports ?? [];
+      setResults(uploaded);
+
+      const now = new Date().toISOString();
+      const newEntries: Report[] = uploaded
+        .filter((r): r is UploadResult & { slug: string } => Boolean(r.slug))
+        .map((r) => ({
+          slug: r.slug,
+          title: r.title ?? r.filename,
+          filename: r.filename,
+          uploadedAt: now,
+        }));
+
+      if (newEntries.length > 0) {
+        setReports((prev) => {
+          const next = [...newEntries, ...prev];
+          writeSession(next);
+          return next;
+        });
+      }
     } catch {
       setResults([{ filename: "upload", error: "Upload failed" }]);
     } finally {
@@ -76,8 +107,13 @@ export default function Home() {
 
   const handleDelete = async (slug: string) => {
     if (!confirm("Delete this report? The shared link will stop working.")) return;
-    await fetch(`/api/reports/${slug}`, { method: "DELETE" });
-    fetchReports();
+    const res = await fetch(`/api/reports/${slug}`, { method: "DELETE" });
+    if (!res.ok) return;
+    setReports((prev) => {
+      const next = prev.filter((r) => r.slug !== slug);
+      writeSession(next);
+      return next;
+    });
   };
 
   const copyLink = (slug: string) => {
