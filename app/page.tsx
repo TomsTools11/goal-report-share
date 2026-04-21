@@ -245,7 +245,7 @@ export default function Home() {
               <p className="mt-1.5 text-[13px] text-[var(--text-tertiary)]">
                 or click to browse
                 <span className="mx-1.5 text-[var(--surface-border-strong)]">·</span>
-                .html files up to 1 MB
+                .html files up to 1.25 MB
               </p>
             </div>
           </div>
