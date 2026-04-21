@@ -16,18 +16,21 @@ export async function GET(
   // uploaded scripts can run (Leaflet, inline data, etc.) but cannot touch this app's cookies,
   // localStorage, or same-origin endpoints. Without `allow-same-origin` the document's origin is
   // null; without `allow-top-navigation` it can't redirect the tab. External https script/style/
-  // image/font/XHR loads are permitted so CDN-hosted libraries and map tiles work.
+  // image/font/XHR loads are permitted so CDN-hosted libraries and map tiles work. `blob:` is
+  // allowed so self-unpacking report bundles (base64 assets → `URL.createObjectURL`) can inject
+  // their scripts, styles, images, and fonts.
   return new NextResponse(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "Content-Security-Policy": [
         "sandbox allow-scripts allow-popups",
         "default-src 'none'",
-        "script-src 'unsafe-inline' https:",
-        "style-src 'unsafe-inline' https:",
-        "img-src data: https:",
-        "font-src data: https:",
-        "connect-src https:",
+        "script-src 'unsafe-inline' https: blob:",
+        "style-src 'unsafe-inline' https: blob:",
+        "img-src data: https: blob:",
+        "font-src data: https: blob:",
+        "media-src data: https: blob:",
+        "connect-src https: blob:",
         "frame-src 'none'",
         "base-uri 'none'",
         "form-action 'none'",
