@@ -12,11 +12,26 @@ export async function GET(
     return new NextResponse("Report not found", { status: 404 });
   }
 
+  // `sandbox allow-scripts allow-popups` forces the document into an opaque/null origin so
+  // uploaded scripts can run (Leaflet, inline data, etc.) but cannot touch this app's cookies,
+  // localStorage, or same-origin endpoints. Without `allow-same-origin` the document's origin is
+  // null; without `allow-top-navigation` it can't redirect the tab. External https script/style/
+  // image/font/XHR loads are permitted so CDN-hosted libraries and map tiles work.
   return new NextResponse(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Content-Security-Policy":
-        "default-src 'none'; style-src 'unsafe-inline' https:; font-src data: https:; img-src data: https:; connect-src 'none'; script-src 'none'; base-uri 'none'; form-action 'none'",
+      "Content-Security-Policy": [
+        "sandbox allow-scripts allow-popups",
+        "default-src 'none'",
+        "script-src 'unsafe-inline' https:",
+        "style-src 'unsafe-inline' https:",
+        "img-src data: https:",
+        "font-src data: https:",
+        "connect-src https:",
+        "frame-src 'none'",
+        "base-uri 'none'",
+        "form-action 'none'",
+      ].join("; "),
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "public, max-age=3600",
     },
