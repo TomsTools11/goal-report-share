@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Report Share",
+  title: "DropDoc",
   description: "Upload and share HTML client reports",
   icons: {
     icon: "/icon.svg",
