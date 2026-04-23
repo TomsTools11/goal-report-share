@@ -13,11 +13,11 @@
   --text-secondary: #52525b;
   --text-tertiary: #a1a1aa;
 
-  /* Brand accent — electric blue */
-  --brand: #006FE8;
-  --brand-hover: #0062D0;
-  --brand-soft: #E6F0FE;
-  --brand-ring: rgba(0, 111, 232, 0.18);
+  /* Brand accent — DropDoc teal */
+  --brand: #4CB0C9;
+  --brand-hover: #3D9DB5;
+  --brand-soft: #E6F4F8;
+  --brand-ring: rgba(76, 176, 201, 0.22);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,10 +32,10 @@
     --text-secondary: #a1a1aa;
     --text-tertiary: #52525b;
 
-    --brand: #3A92F5;
-    --brand-hover: #5BA4F7;
-    --brand-soft: rgba(58, 146, 245, 0.12);
-    --brand-ring: rgba(58, 146, 245, 0.28);
+    --brand: #6FC5DA;
+    --brand-hover: #8BD1E3;
+    --brand-soft: rgba(111, 197, 218, 0.12);
+    --brand-ring: rgba(111, 197, 218, 0.28);
   }
 }
 

@@ -141,7 +141,7 @@ export default function Home() {
               <BrandMark size={22} />
             </span>
             <span className="font-semibold tracking-tight text-[15px]">
-              Report Share
+              DropDoc
             </span>
           </div>
           <div className="text-xs text-[var(--text-tertiary)] font-mono tabular-nums">
@@ -223,8 +223,8 @@ export default function Home() {
                     uploading
                       ? "bg-[var(--brand)] text-white"
                       : dragging
-                      ? "bg-[var(--brand)] text-white scale-110"
-                      : "bg-[var(--surface-0)] text-[var(--brand)] border border-[var(--surface-border)] group-hover:border-[var(--brand)] brand-mark-idle"
+                      ? "bg-[var(--surface-0)] border-2 border-[var(--brand)] scale-110"
+                      : "bg-[var(--surface-0)] border border-[var(--surface-border)] group-hover:border-[var(--brand)] brand-mark-idle"
                   }
                 `}
               >
