@@ -23,9 +23,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "DropDoc",
   description: "Upload and share HTML client reports",
-  icons: {
-    icon: "/icon.svg",
-  },
 };
 
 export default function RootLayout({
