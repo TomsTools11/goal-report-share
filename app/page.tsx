@@ -237,6 +237,99 @@ export default function Home() {
         )}
       </section>
 
+      {/* Reports preview — only shown when the tab has reports */}
+      {reports.length > 0 && (
+        <section className="v1-section v1-section--tight">
+          <header className="v1-section-head--row">
+            <div>
+              <span className="v1-section-eyebrow">— Your reports</span>
+              <h2 className="v1-section-title">Per-tab list, not per-account.</h2>
+            </div>
+            <div className="v1-search">
+              <Ic.search />
+              <input
+                placeholder="Search reports"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </header>
+
+          {filtered.length === 0 ? (
+            <div
+              style={{
+                padding: "56px 24px",
+                textAlign: "center",
+                fontSize: 14,
+                color: "var(--text-tertiary)",
+                border: "1px dashed var(--surface-border)",
+                borderRadius: 14,
+              }}
+            >
+              No reports match &ldquo;{search}&rdquo;
+            </div>
+          ) : (
+            <div className="v1-reports">
+              {filtered.map((r) => (
+                <div key={r.slug} className="v1-report-row">
+                  <div className="v1-report-dot">
+                    <Ic.check />
+                  </div>
+                  <div className="v1-report-main">
+                    <div className="v1-report-title">{r.title}</div>
+                    <div className="v1-report-meta">
+                      <span>/r/{r.slug}</span>
+                      <span className="dot">·</span>
+                      <span>{r.filename}</span>
+                    </div>
+                  </div>
+                  <div className="v1-report-when">
+                    {formatDate(r.uploadedAt)}
+                  </div>
+                  <div className="v1-report-actions">
+                    <button
+                      className={`v1-btn-ghost ${
+                        copiedSlug === r.slug ? "copied" : ""
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyLink(r.slug);
+                      }}
+                    >
+                      {copiedSlug === r.slug ? (
+                        <>
+                          <Ic.check /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Ic.link /> Copy link
+                        </>
+                      )}
+                    </button>
+                    <a
+                      href={`/r/${r.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="v1-btn-icon"
+                      aria-label="Open report"
+                    >
+                      <Ic.external />
+                    </a>
+                    <button
+                      className="v1-btn-icon v1-btn-del"
+                      onClick={() => handleDelete(r.slug)}
+                      aria-label="Delete report"
+                    >
+                      <Ic.trash />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Trust meta strip */}
       <section className="v1-strip">
         <div className="v1-strip-cell">
@@ -382,99 +475,6 @@ export default function Home() {
           </li>
         </ol>
       </section>
-
-      {/* Reports preview — only shown when the tab has reports */}
-      {reports.length > 0 && (
-        <section className="v1-section">
-          <header className="v1-section-head--row">
-            <div>
-              <span className="v1-section-eyebrow">— Your reports</span>
-              <h2 className="v1-section-title">Per-tab list, not per-account.</h2>
-            </div>
-            <div className="v1-search">
-              <Ic.search />
-              <input
-                placeholder="Search reports"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </header>
-
-          {filtered.length === 0 ? (
-            <div
-              style={{
-                padding: "56px 24px",
-                textAlign: "center",
-                fontSize: 14,
-                color: "var(--text-tertiary)",
-                border: "1px dashed var(--surface-border)",
-                borderRadius: 14,
-              }}
-            >
-              No reports match &ldquo;{search}&rdquo;
-            </div>
-          ) : (
-            <div className="v1-reports">
-              {filtered.map((r) => (
-                <div key={r.slug} className="v1-report-row">
-                  <div className="v1-report-dot">
-                    <Ic.check />
-                  </div>
-                  <div className="v1-report-main">
-                    <div className="v1-report-title">{r.title}</div>
-                    <div className="v1-report-meta">
-                      <span>/r/{r.slug}</span>
-                      <span className="dot">·</span>
-                      <span>{r.filename}</span>
-                    </div>
-                  </div>
-                  <div className="v1-report-when">
-                    {formatDate(r.uploadedAt)}
-                  </div>
-                  <div className="v1-report-actions">
-                    <button
-                      className={`v1-btn-ghost ${
-                        copiedSlug === r.slug ? "copied" : ""
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyLink(r.slug);
-                      }}
-                    >
-                      {copiedSlug === r.slug ? (
-                        <>
-                          <Ic.check /> Copied
-                        </>
-                      ) : (
-                        <>
-                          <Ic.link /> Copy link
-                        </>
-                      )}
-                    </button>
-                    <a
-                      href={`/r/${r.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="v1-btn-icon"
-                      aria-label="Open report"
-                    >
-                      <Ic.external />
-                    </a>
-                    <button
-                      className="v1-btn-icon v1-btn-del"
-                      onClick={() => handleDelete(r.slug)}
-                      aria-label="Delete report"
-                    >
-                      <Ic.trash />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
 
       {/* FAQ */}
       <section className="v1-section" id="faq">

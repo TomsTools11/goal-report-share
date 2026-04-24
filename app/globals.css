@@ -392,6 +392,9 @@ a {
   margin: 0 auto;
   padding: 96px 32px;
 }
+.v1-section--tight {
+  padding: 40px 32px 24px;
+}
 .v1-section--alt {
   background: var(--surface-1);
   max-width: none;
