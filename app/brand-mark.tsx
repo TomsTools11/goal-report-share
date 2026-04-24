@@ -12,7 +12,6 @@ export function BrandMark({
   size?: number;
   className?: string;
 }) {
-  const uid = "drop-clip";
   return (
     <svg
       width={size}
@@ -22,20 +21,66 @@ export function BrandMark({
       className={className}
       aria-hidden="true"
     >
+      <MarkGlyph idPrefix="drop-clip" />
+    </svg>
+  );
+}
+
+/**
+ * Full DropDoc lockup — teardrop mark + wordmark, rendered as a single
+ * cohesive SVG so it scales as one unit. The wordmark uses currentColor so
+ * it picks up the surrounding text color (primary by default, dark-mode safe).
+ */
+export function BrandLockup({
+  height = 26,
+  className,
+}: {
+  height?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      height={height}
+      width={(height * 420) / 120}
+      viewBox="0 0 420 120"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      role="img"
+      aria-label="DropDoc"
+    >
+      <MarkGlyph idPrefix="drop-clip-lockup" />
+      <text
+        x="122"
+        y="86"
+        fill="currentColor"
+        fontSize="74"
+        fontWeight={650}
+        letterSpacing="-3.2"
+        style={{
+          fontFamily:
+            "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        }}
+      >
+        DropDoc
+      </text>
+    </svg>
+  );
+}
+
+function MarkGlyph({ idPrefix }: { idPrefix: string }) {
+  const clipId = `${idPrefix}-clip`;
+  const teardrop = "M 50 6 C 72 34 88 60 88 78 A 38 38 0 1 1 12 78 C 12 60 28 34 50 6 Z";
+  return (
+    <>
       <defs>
-        <clipPath id={uid}>
-          <path d="M 50 6 C 72 34 88 60 88 78 A 38 38 0 1 1 12 78 C 12 60 28 34 50 6 Z" />
+        <clipPath id={clipId}>
+          <path d={teardrop} />
         </clipPath>
       </defs>
 
-      {/* Teardrop body */}
-      <path
-        d="M 50 6 C 72 34 88 60 88 78 A 38 38 0 1 1 12 78 C 12 60 28 34 50 6 Z"
-        fill="var(--brand)"
-      />
+      <path d={teardrop} fill="var(--brand)" />
 
-      <g clipPath={`url(#${uid})`}>
-        {/* Lined-paper rules */}
+      <g clipPath={`url(#${clipId})`}>
         <g stroke="#ffffff" strokeWidth="0.8" strokeOpacity="0.55">
           <line x1="0" y1="34" x2="100" y2="34" />
           <line x1="0" y1="44" x2="100" y2="44" />
@@ -47,7 +92,6 @@ export function BrandMark({
           <line x1="0" y1="104" x2="100" y2="104" />
         </g>
 
-        {/* Red margin rule */}
         <line
           x1="30"
           y1="0"
@@ -58,12 +102,10 @@ export function BrandMark({
           strokeOpacity="0.85"
         />
 
-        {/* Peeled corner — cream paper back */}
         <path
           d="M 58 14 C 56 26 62 36 72 44 C 78 48 84 50 88 50 L 88 30 C 80 24 68 18 58 14 Z"
           fill="#F2EADA"
         />
-        {/* Subtle shadow along the fold */}
         <path
           d="M 58 14 C 56 26 62 36 72 44"
           stroke="#B9A986"
@@ -72,6 +114,6 @@ export function BrandMark({
           fill="none"
         />
       </g>
-    </svg>
+    </>
   );
 }
