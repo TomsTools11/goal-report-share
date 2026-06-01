@@ -6,20 +6,33 @@
 //                                (Chart.js, D3, Leaflet, Plotly, Highcharts, ECharts, jQuery, etc.)
 //   2. <link rel=stylesheet href="./...css"> → same treatment for known library stylesheets
 //
+//   3. <img src="./assets/logo.png">     → embed inline as base64 when the basename matches a
+//                                           known brand asset (the GOAL/S3 Labs logos the report
+//                                           templates reference). See lib/brand-assets.ts.
+//
 // References we can't recognize get stripped (script) or stripped (stylesheet) and surfaced to the
 // uploader as notices so they know the report needed fixing. Absolute URLs (http(s):, //, data:,
 // blob:) are left alone — they either work over the wire or are already safe.
 //
-// We deliberately *do not* touch <img src> or <link rel=icon>: a missing image is visually
-// obvious to the report author, while a broken script silently kills the whole page.
+// For <img src>: DropDoc only ever receives the single uploaded HTML file, never the sibling
+// assets folder, so a relative image reference 404s once the report is served from /r/<slug>.
+// Known brand logos are embedded inline as base64 so they always render; any *other* relative
+// image can't be recovered (the bytes were never uploaded) — we leave it in place but surface an
+// "unresolved-image" notice so the broken image is a visible warning, not a silent surprise.
+// <link rel=icon> is still left untouched (a missing favicon is graceful).
 //
 // Sanitization runs after this step, so any hostile attribute we might inadvertently emit gets
-// scrubbed by sanitize-html. The CDN URLs all use https:, which the report's CSP already permits.
+// scrubbed by sanitize-html. The CDN URLs all use https: and the embedded logos use data:, both of
+// which the report's CSP (`img-src data: https: blob:`) already permits.
+
+import { BRAND_ASSET_DATA_URIS } from "./brand-assets";
 
 export type AssetNotice =
   | { kind: "rewritten"; library: string; from: string }
   | { kind: "removed-script"; from: string }
-  | { kind: "removed-stylesheet"; from: string };
+  | { kind: "removed-stylesheet"; from: string }
+  | { kind: "embedded-image"; asset: string; from: string }
+  | { kind: "unresolved-image"; from: string };
 
 type LibraryRule = {
   // Matches the basename (filename only, no directory, no query/hash).
@@ -157,6 +170,28 @@ export function rewriteAssets(html: string): RewriteResult {
       }
       notices.push({ kind: "removed-stylesheet", from: url });
       return "";
+    }
+  );
+
+  // <img src="..."> — void element, both `<img ...>` and `<img ... />` forms. Relative references
+  // to a known brand logo are embedded inline as base64 (the assets folder is never uploaded, so
+  // the file can't be fetched once served). Other relative images can't be recovered, so we leave
+  // them in place but flag them — turning a silent broken image into a visible notice.
+  result = result.replace(
+    /<img\b([^>]*?)\s*\/?>/gi,
+    (match, attrs: string) => {
+      const srcMatch = attrs.match(/\bsrc\s*=\s*(["'])([^"']*)\1/i);
+      if (!srcMatch) return match;
+      const url = srcMatch[2];
+      if (isAbsoluteOrSafeScheme(url)) return match;
+
+      const dataUri = BRAND_ASSET_DATA_URIS[basename(url).toLowerCase()];
+      if (dataUri) {
+        notices.push({ kind: "embedded-image", asset: basename(url), from: url });
+        return `<img${replaceAttrValue(attrs, "src", dataUri)}>`;
+      }
+      notices.push({ kind: "unresolved-image", from: url });
+      return match;
     }
   );
 

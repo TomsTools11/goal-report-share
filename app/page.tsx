@@ -8,7 +8,9 @@ import { MAX_FILE_SIZE, MAX_FILE_SIZE_MB } from "@/lib/limits";
 type AssetNotice =
   | { kind: "rewritten"; library: string; from: string }
   | { kind: "removed-script"; from: string }
-  | { kind: "removed-stylesheet"; from: string };
+  | { kind: "removed-stylesheet"; from: string }
+  | { kind: "embedded-image"; asset: string; from: string }
+  | { kind: "unresolved-image"; from: string };
 
 interface UploadResult {
   filename: string;
@@ -348,6 +350,20 @@ export default function Home() {
                           <strong>Loaded {n.library} from CDN</strong>
                           <span className="v1-notice-from">
                             was: <code>{n.from}</code>
+                          </span>
+                        </>
+                      ) : n.kind === "embedded-image" ? (
+                        <>
+                          <strong>Embedded {n.asset} inline</strong>
+                          <span className="v1-notice-from">
+                            was: <code>{n.from}</code>
+                          </span>
+                        </>
+                      ) : n.kind === "unresolved-image" ? (
+                        <>
+                          <strong>Image won&apos;t render — file not uploaded</strong>
+                          <span className="v1-notice-from">
+                            <code>{n.from}</code>
                           </span>
                         </>
                       ) : n.kind === "removed-script" ? (
