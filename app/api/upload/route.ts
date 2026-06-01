@@ -3,8 +3,7 @@ import { nanoid } from "nanoid";
 import { storeReport } from "@/lib/store";
 import { sanitizeReport, extractTitle } from "@/lib/sanitize";
 import { rewriteAssets, type AssetNotice } from "@/lib/rewrite-assets";
-
-const MAX_FILE_SIZE = 1.25 * 1024 * 1024; // 1.25MB
+import { MAX_FILE_SIZE, MAX_FILE_SIZE_MB } from "@/lib/limits";
 
 export async function POST(request: NextRequest) {
   // Optional upload protection
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      results.push({ filename: file.name, error: "File exceeds 1.25MB limit" });
+      results.push({ filename: file.name, error: `File exceeds ${MAX_FILE_SIZE_MB}MB limit` });
       continue;
     }
 

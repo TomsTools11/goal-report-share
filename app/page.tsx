@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { BrandMark } from "./brand-mark";
+import { MAX_FILE_SIZE, MAX_FILE_SIZE_MB } from "@/lib/limits";
 
 type AssetNotice =
   | { kind: "rewritten"; library: string; from: string }
@@ -87,54 +88,78 @@ export default function Home() {
   };
 
   const uploadFiles = async (files: FileList | File[]) => {
+    const fileList = Array.from(files);
+    if (fileList.length === 0) return;
+
     setUploading(true);
     setUploadError(null);
     setUploadNotices([]);
 
-    const formData = new FormData();
-    for (const file of Array.from(files)) {
-      formData.append("files", file);
-    }
+    const errors: string[] = [];
+    const noticesByFile: UploadNotice[] = [];
+    const newEntries: Report[] = [];
+    const now = new Date().toISOString();
 
-    try {
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      const uploaded: UploadResult[] = data.reports ?? [];
-
-      const firstError = uploaded.find((r) => r.error);
-      if (firstError?.error) {
-        setUploadError(firstError.error);
+    // One request per file keeps each upload body under Vercel's 4.5MB function
+    // limit regardless of how many files are dropped, and isolates failures so a
+    // single bad file no longer sinks the whole batch.
+    for (const file of fileList) {
+      // Mirror the server's guards client-side so oversized/invalid files get a
+      // friendly message instead of a wasted round-trip (or a platform 413).
+      if (!/\.html?$/i.test(file.name)) {
+        errors.push(`${file.name}: not an HTML file`);
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: exceeds ${MAX_FILE_SIZE_MB}MB limit`);
+        continue;
       }
 
-      const noticesByFile: UploadNotice[] = uploaded
-        .filter((r) => r.slug && r.notices && r.notices.length > 0)
-        .map((r) => ({ filename: r.filename, notices: r.notices ?? [] }));
-      if (noticesByFile.length > 0) {
-        setUploadNotices(noticesByFile);
-      }
+      try {
+        const formData = new FormData();
+        formData.append("files", file);
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await res.json().catch(() => ({}));
 
-      const now = new Date().toISOString();
-      const newEntries: Report[] = uploaded
-        .filter((r): r is UploadResult & { slug: string } => Boolean(r.slug))
-        .map((r) => ({
-          slug: r.slug,
-          title: r.title ?? r.filename,
-          filename: r.filename,
+        if (!res.ok) {
+          errors.push(`${file.name}: ${typeof data?.error === "string" ? data.error : "upload failed"}`);
+          continue;
+        }
+
+        const result: UploadResult | undefined = (data.reports ?? [])[0];
+        if (!result || result.error) {
+          errors.push(`${file.name}: ${result?.error ?? "upload failed"}`);
+          continue;
+        }
+        if (!result.slug) continue;
+
+        if (result.notices && result.notices.length > 0) {
+          noticesByFile.push({ filename: result.filename, notices: result.notices });
+        }
+        newEntries.push({
+          slug: result.slug,
+          title: result.title ?? result.filename,
+          filename: result.filename,
           uploadedAt: now,
-        }));
-
-      if (newEntries.length > 0) {
-        setReports((prev) => {
-          const next = [...newEntries, ...prev];
-          writeSession(next);
-          return next;
         });
+      } catch {
+        errors.push(`${file.name}: upload failed`);
       }
-    } catch {
-      setUploadError("Upload failed");
-    } finally {
-      setUploading(false);
     }
+
+    if (errors.length > 0) {
+      setUploadError(errors.length === 1 ? errors[0] : `${errors[0]} (+${errors.length - 1} more)`);
+    }
+    if (noticesByFile.length > 0) setUploadNotices(noticesByFile);
+    if (newEntries.length > 0) {
+      setReports((prev) => {
+        const next = [...newEntries, ...prev];
+        writeSession(next);
+        return next;
+      });
+    }
+
+    setUploading(false);
   };
 
   const handleDrop = useCallback(
@@ -286,7 +311,7 @@ export default function Home() {
             </p>
             <p className="v1-dz-hint">
               or click to browse
-              <span className="dot">·</span>.html files up to 1.25&nbsp;MB
+              <span className="dot">·</span>.html files up to {MAX_FILE_SIZE_MB}&nbsp;MB
             </p>
           </div>
         </div>
@@ -458,7 +483,7 @@ export default function Home() {
         </div>
         <div className="v1-strip-cell">
           <span className="num">
-            1.25<small>mb</small>
+            {MAX_FILE_SIZE_MB}<small>mb</small>
           </span>
           <span className="label">Per-file ceiling</span>
         </div>
@@ -567,7 +592,7 @@ export default function Home() {
             <h4>Drop</h4>
             <p>
               Drag an <code>.html</code> file onto the page, or click to browse.
-              We accept single-file HTML up to 1.25&nbsp;MB.
+              We accept single-file HTML up to {MAX_FILE_SIZE_MB}&nbsp;MB.
             </p>
           </li>
           <li>
