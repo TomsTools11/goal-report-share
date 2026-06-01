@@ -28,15 +28,20 @@ DropDoc is a single-purpose Next.js 16 (App Router) + React 19 tool for uploadin
 
 ### The security boundary: sanitizer + CSP sandbox (both are required)
 
-The sanitizer in `lib/sanitize.ts` is unusually permissive — it allows `<script>`, `<style>`, inline event-free HTML, and form controls — *because* `app/r/[slug]/route.ts` serves every report with `Content-Security-Policy: sandbox allow-scripts allow-popups` plus `default-src 'none'`. The `sandbox` directive forces the document into a null/opaque origin, so uploaded scripts can run (Leaflet, Chart.js, self-unpacking base64 bundles via `blob:` URLs) but cannot read the app's cookies, localStorage, or hit same-origin endpoints. `form-action 'none'` and the absence of `allow-top-navigation` also matter.
+The sanitizer in `lib/sanitize.ts` is unusually permissive — it allows `<script>`, `<style>`, `<template>`, inline event-free HTML, and form controls — *because* `app/r/[slug]/route.ts` serves every report with a sandbox CSP that isolates it from the app. The policy is `sandbox allow-scripts allow-popups` + `default-src 'none'`, then re-opens specific resource types: `script-src`/`style-src 'unsafe-inline' https: blob:`, `img-`/`font-`/`media-src data: https: blob:`, and `connect-src https: blob:`. `frame-src 'none'`, `base-uri 'none'`, and `form-action 'none'` lock down the rest.
+
+The `sandbox` directive (note: **no** `allow-same-origin`) forces the document into a null/opaque origin, so uploaded scripts can run (Leaflet, Chart.js, self-unpacking base64 bundles via `blob:` URLs) and can even fetch external `https:` data and map tiles — but cannot read the app's cookies, `localStorage`, or hit its same-origin endpoints. The deliberate trade-off: a report **can** talk to arbitrary external `https:` hosts (so legitimate reports load CDN libraries and live data), it just can't reach anything belonging to DropDoc itself. The absence of `allow-top-navigation` keeps it from redirecting the parent tab, and `form-action 'none'` blocks form-based exfiltration.
 
 If you change either side, change the other deliberately:
 - Loosening the CSP (adding `allow-same-origin`, relaxing `form-action`, etc.) turns uploads into XSS against the app.
 - Tightening the sanitizer without also tightening CSP usually just breaks reports.
 
-Two subtle invariants in `sanitize.ts`:
+Non-obvious invariants in `sanitize.ts` — each exists to keep real reports rendering, and each is safe *only* because of the CSP sandbox above:
 - `allowVulnerableTags: true` is intentional — it's required to keep `<style>` through sanitization.
-- `sanitize-html` drops attributes whose value is the empty string. `EMPTY_VALUE_SENTINEL` preserves `value=""` on `<option>` and similar, which interactive report filters rely on. Don't remove the pre/post-processing dance without a replacement.
+- **No `allowedStyles` config** — inline `style=` attributes pass through verbatim. `sanitize-html`'s `allowedStyles` keys are literal property names, not regex, so the tempting `{ "/.*/": [/.*/] }` matches nothing and strips *every* inline style, which breaks reports that lean on per-element colors/grids/backgrounds. CSS-borne threats are handled by the null origin instead.
+- `<template>` is allowed. It's inert by spec (contents parse into a `DocumentFragment` and don't execute until cloned), and client-routed reports that ship multiple views in one file depend on `getElementById('…').content`. Stripping the wrapper dumps its children into `<body>` and breaks both layout and lookups.
+- `EMPTY_VALUE_SENTINEL`: `sanitize-html` drops attributes whose value is the empty string. The sentinel preserves `value=""` on `<option>` and similar, which interactive report filters rely on. Don't remove the pre/post-processing dance without a replacement.
+- `transformTags.a` rewrites only *off-document* links to `target="_blank"` + `rel="noopener noreferrer"`. In-page `#anchor` links are left untouched so a report's own sidebar/section navigation stays in the same tab — don't blanket-force `_blank`.
 
 ### Auth
 
@@ -45,3 +50,7 @@ Upload and delete are gated by an optional `UPLOAD_SECRET` env var, checked via 
 ### Deployment assumption
 
 Runs on Vercel. `@vercel/blob` is the only storage backend; there is no DB. Listing on the home page is purely client-side `sessionStorage` — the server's `listReports` helper exists but isn't wired into the UI.
+
+### Theming (light/dark)
+
+Theme is a single `data-theme="light|dark"` attribute on `<html>`; all colors are CSS variables in `app/globals.css`, with dark values keyed off `[data-theme="dark"]`. To avoid a flash of the wrong theme, `app/layout.tsx` runs a small **blocking inline `<script>`** that sets the attribute *before paint* from `localStorage['dropdoc-theme']`, falling back to `prefers-color-scheme`. `app/page.tsx` reads and toggles it at runtime. `<html suppressHydrationWarning>` is required because the server can't know the client's stored theme — keep that in mind before adding theme-dependent server-rendered markup.
