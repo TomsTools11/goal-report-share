@@ -487,19 +487,20 @@ export default function Home() {
               Drop the file. We sanitize, slug it, and stand up a stable URL
               before you reach your clipboard.
             </p>
-            <code>POST /upload → 201</code>
+            <code>POST /api/upload → 200</code>
           </article>
 
           <article className="v1-feat">
             <div className="v1-feat-icon">
-              <Ic.qr />
+              <Ic.wand />
             </div>
-            <h3>QR on every link</h3>
+            <h3>Broken refs, auto-patched</h3>
             <p>
-              Hand off in person without typing a URL. Download the mark as PNG
-              for slides, print, and packaging.
+              &ldquo;Save Page As&rdquo; exports lose their chart and map
+              libraries. We repoint the ones we know — Chart.js, D3, Leaflet,
+              Plotly — to a CDN so the report still renders.
             </p>
-            <code>/r/abc123.png</code>
+            <code>./chart.js → CDN</code>
           </article>
 
           <article className="v1-feat">
@@ -518,12 +519,13 @@ export default function Home() {
             <div className="v1-feat-icon">
               <Ic.shield />
             </div>
-            <h3>Sanitized, not rewritten</h3>
+            <h3>Sealed in a sandbox</h3>
             <p>
-              We strip scripts and external fetches. Your layout, fonts, and
-              styling come through untouched.
+              Your scripts and styles run — but inside a locked-down sandbox
+              that can&apos;t read DropDoc&apos;s cookies, storage, or other
+              reports. Your layout, fonts, and styling come through untouched.
             </p>
-            <code>CSP: strict</code>
+            <code>CSP: sandbox</code>
           </article>
 
           <article className="v1-feat">
@@ -532,10 +534,10 @@ export default function Home() {
             </div>
             <h3>Unguessable slugs</h3>
             <p>
-              Links are 6-character Base62 ids. Not indexed, not listed.
-              Shareable means shareable on purpose.
+              Links are 8-character random ids — URL-safe, not indexed, not
+              listed. Shareable means shareable on purpose.
             </p>
-            <code>/r/9kR2vH</code>
+            <code>/r/V1StGXR8</code>
           </article>
 
           <article className="v1-feat">
@@ -572,8 +574,8 @@ export default function Home() {
             <span className="v1-step-n">02</span>
             <h4>Sanitize</h4>
             <p>
-              Scripts, iframes, and external fetches get stripped. Everything
-              visual — styles, fonts, SVGs — stays intact.
+              Dangerous markup and iframes get stripped; scripts run sealed in a
+              sandbox. Everything visual — styles, fonts, SVGs — stays intact.
             </p>
           </li>
           <li>
@@ -581,8 +583,8 @@ export default function Home() {
             <h4>Share</h4>
             <p>
               You get a stable URL at{" "}
-              <code>dropdoc.sh/r/&lt;slug&gt;</code> and a QR for the same link.
-              Paste, print, or text it.
+              <code>dropdoc.sh/r/&lt;slug&gt;</code>. Paste it, print it, or text
+              it to your client.
             </p>
           </li>
         </ol>
@@ -636,12 +638,6 @@ export default function Home() {
               <a>All products</a>
               <a>Changelog</a>
             </div>
-            <div>
-              <span className="v1-footer-label">Legal</span>
-              <a>Terms</a>
-              <a>Privacy</a>
-              <a>Acceptable use</a>
-            </div>
           </div>
         </div>
         <div className="v1-footer-base">
@@ -665,11 +661,11 @@ const FAQ: ReadonlyArray<readonly [string, string]> = [
   ],
   [
     "Can I password-protect a report?",
-    "Not yet. Slugs are random 6-char Base62 ids — unguessable, not indexed — which covers most casual sharing. Password protection is on the roadmap.",
+    "Not yet. Slugs are random 8-character URL-safe ids — unguessable, not indexed — which covers most casual sharing. Password protection is on the roadmap.",
   ],
   [
     "What happens to scripts in my HTML?",
-    "We strip <script>, <iframe>, and external fetches at upload. Styles, fonts, images, and SVG render exactly as designed.",
+    "They run — but inside a locked-down sandbox with no access to DropDoc's cookies, storage, or other reports. We remove <iframe> and other risky markup at upload; styles, fonts, images, and SVG render exactly as designed.",
   ],
   [
     "Can I use a custom domain?",
@@ -811,7 +807,7 @@ const Ic = {
       <path d="M13 3 L5 13 H11 L10 21 L19 11 H13 L14 3 Z" />
     </svg>
   ),
-  qr: () => (
+  wand: () => (
     <svg
       width="20"
       height="20"
@@ -822,10 +818,9 @@ const Ic = {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <path d="M14 14 H17 M14 17 V21 M20 14 V17 M17 20 H21" />
+      <path d="M5 19 L14 10" />
+      <path d="M16.5 3.5 L17.4 5.6 L19.5 6.5 L17.4 7.4 L16.5 9.5 L15.6 7.4 L13.5 6.5 L15.6 5.6 Z" />
+      <path d="M19.5 11.5 L20 12.7 L21.2 13.2 L20 13.7 L19.5 14.9 L19 13.7 L17.8 13.2 L19 12.7 Z" />
     </svg>
   ),
   infinity: () => (
