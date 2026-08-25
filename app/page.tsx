@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { BrandMark } from "./brand-mark";
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_MB } from "@/lib/limits";
+import {
+  ACCEPTED_EXTENSIONS,
+  ACCEPTED_LABEL,
+  kindForFilename,
+  kindLabel,
+  normalizeKind,
+  type ReportKind,
+} from "@/lib/report-kind";
 
 type AssetNotice =
   | { kind: "rewritten"; library: string; from: string }
@@ -17,6 +25,7 @@ interface UploadResult {
   slug?: string;
   title?: string;
   url?: string;
+  kind?: ReportKind;
   error?: string;
   notices?: AssetNotice[];
 }
@@ -31,6 +40,7 @@ interface Report {
   title: string;
   filename: string;
   uploadedAt: string;
+  kind: ReportKind;
 }
 
 const SESSION_KEY = "reports:v1";
@@ -41,7 +51,9 @@ function readSession(): Report[] {
     const raw = window.sessionStorage.getItem(SESSION_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Report[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    // Entries written before PDF support carry no `kind`; they're all HTML.
+    return (parsed as Report[]).map((entry) => ({ ...entry, kind: normalizeKind(entry.kind) }));
   } catch {
     return [];
   }
@@ -108,8 +120,9 @@ export default function Home() {
     for (const file of fileList) {
       // Mirror the server's guards client-side so oversized/invalid files get a
       // friendly message instead of a wasted round-trip (or a platform 413).
-      if (!/\.html?$/i.test(file.name)) {
-        errors.push(`${file.name}: not an HTML file`);
+      const kind = kindForFilename(file.name);
+      if (!kind) {
+        errors.push(`${file.name}: unsupported file type (${ACCEPTED_LABEL} only)`);
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {
@@ -143,6 +156,7 @@ export default function Home() {
           title: result.title ?? result.filename,
           filename: result.filename,
           uploadedAt: now,
+          kind: result.kind ?? kind,
         });
       } catch {
         errors.push(`${file.name}: upload failed`);
@@ -261,8 +275,8 @@ export default function Home() {
           <span className="muted">Share a link.</span>
         </h1>
         <p className="v1-lead">
-          Drop an HTML file, get a shareable URL in seconds. Your client sees the
-          report exactly as designed — no account, no install.
+          Drop an HTML or PDF file, get a shareable URL in seconds. Your client
+          sees the report exactly as designed — no account, no install.
         </p>
       </section>
 
@@ -287,7 +301,7 @@ export default function Home() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".html,.htm"
+            accept={ACCEPTED_EXTENSIONS}
             multiple
             style={{ display: "none" }}
             onChange={(e) => {
@@ -309,11 +323,12 @@ export default function Home() {
                 ? "Uploading…"
                 : dragging
                 ? "Release to upload"
-                : "Drop HTML reports here"}
+                : "Drop HTML or PDF reports here"}
             </p>
             <p className="v1-dz-hint">
               or click to browse
-              <span className="dot">·</span>.html files up to {MAX_FILE_SIZE_MB}&nbsp;MB
+              <span className="dot">·</span>
+              {ACCEPTED_LABEL} files up to {MAX_FILE_SIZE_MB}&nbsp;MB
             </p>
           </div>
         </div>
@@ -427,6 +442,9 @@ export default function Home() {
                       <Ic.check />
                     </div>
                     <div className="v1-report-title">{r.title}</div>
+                    <span className={`v1-report-kind v1-report-kind--${r.kind}`}>
+                      {kindLabel(r.kind)}
+                    </span>
                   </div>
                   <div className="v1-report-bottom">
                     <div className="v1-report-meta">
@@ -564,7 +582,7 @@ export default function Home() {
             <p>
               Your scripts and styles run — but inside a locked-down sandbox
               that can&apos;t read DropDoc&apos;s cookies, storage, or other
-              reports. Your layout, fonts, and styling come through untouched.
+              reports. PDFs open straight in the browser&apos;s own viewer.
             </p>
             <code>CSP: sandbox</code>
           </article>
@@ -587,10 +605,10 @@ export default function Home() {
             </div>
             <h3>Exactly as designed</h3>
             <p>
-              No chrome, no banner, no watermark. The page your recipient opens
-              is the page you built.
+              HTML or PDF, no chrome, no banner, no watermark. The page your
+              recipient opens is the page you built.
             </p>
-            <code>0 ads · 0 pixels</code>
+            <code>text/html · application/pdf</code>
           </article>
         </div>
       </section>
@@ -607,16 +625,18 @@ export default function Home() {
             <span className="v1-step-n">01</span>
             <h4>Drop</h4>
             <p>
-              Drag an <code>.html</code> file onto the page, or click to browse.
-              We accept single-file HTML up to {MAX_FILE_SIZE_MB}&nbsp;MB.
+              Drag an <code>.html</code> or <code>.pdf</code> file onto the page,
+              or click to browse. Single-file HTML and PDFs up to{" "}
+              {MAX_FILE_SIZE_MB}&nbsp;MB.
             </p>
           </li>
           <li>
             <span className="v1-step-n">02</span>
             <h4>Sanitize</h4>
             <p>
-              Dangerous markup and iframes get stripped; scripts run sealed in a
-              sandbox. Everything visual — styles, fonts, SVGs — stays intact.
+              In HTML, dangerous markup and iframes get stripped and scripts run
+              sealed in a sandbox; everything visual — styles, fonts, SVGs —
+              stays intact. PDFs are verified and stored byte-for-byte.
             </p>
           </li>
           <li>
@@ -707,6 +727,10 @@ const FAQ: ReadonlyArray<readonly [string, string]> = [
   [
     "What happens to scripts in my HTML?",
     "They run — but inside a locked-down sandbox with no access to DropDoc's cookies, storage, or other reports. We remove <iframe> and other risky markup at upload; styles, fonts, images, and SVG render exactly as designed.",
+  ],
+  [
+    "Can I upload PDFs?",
+    `Yes. A .pdf gets the same treatment as an .html file: same drop, same 8-character link, same ${MAX_FILE_SIZE_MB}MB ceiling. We check the file really is a PDF, store it byte-for-byte, and serve it so it opens in the browser's built-in viewer — your client can read, print, or save it without downloading anything first.`,
   ],
   [
     "Can I use a custom domain?",
